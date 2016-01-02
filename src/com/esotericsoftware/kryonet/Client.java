@@ -412,10 +412,6 @@ public class Client extends Connection implements EndPoint {
 		if (!isClosed) {
 			isClosed = true;
 			selector.wakeup();
-			try {
-				selector.selectNow();
-			} catch (IOException ignored) {
-			}
 		}
 	}
 
