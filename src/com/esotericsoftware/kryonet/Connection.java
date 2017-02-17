@@ -337,4 +337,14 @@ public class Connection {
 		this.isConnected = isConnected;
 		if (isConnected && name == null) name = "Connection " + id;
 	}
+
+	public UdpConnection getUdpConnection()
+	{
+		return udp;
+	}
+
+	public TcpConnection getTcpConnection()
+	{
+		return tcp;
+	}
 }

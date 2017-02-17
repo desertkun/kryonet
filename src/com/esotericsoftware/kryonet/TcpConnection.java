@@ -31,7 +31,7 @@ import java.nio.channels.SocketChannel;
 import static com.esotericsoftware.minlog.Log.*;
 
 /** @author Nathan Sweet <misc@n4te.com> */
-class TcpConnection {
+public class TcpConnection {
 	static private final int IPTOS_LOWDELAY = 0x10;
 
 	SocketChannel socketChannel;
@@ -46,6 +46,9 @@ class TcpConnection {
 	private volatile long lastWriteTime, lastReadTime;
 	private int currentObjectLength;
 	private final Object writeLock = new Object();
+
+	private int totalBytesReceived = 0;
+	private int totalBytesSent = 0;
 
 	public TcpConnection (Serialization serialization, int writeBufferSize, int objectBufferSize) {
 		this.serialization = serialization;
@@ -123,6 +126,8 @@ class TcpConnection {
 			if (readBuffer.remaining() < lengthLength) {
 				readBuffer.compact();
 				int bytesRead = socketChannel.read(readBuffer);
+				if (bytesRead > 0)
+					totalBytesReceived += bytesRead;
 				readBuffer.flip();
 				if (bytesRead == -1) throw new SocketException("Connection is closed.");
 				lastReadTime = System.currentTimeMillis();
@@ -141,6 +146,8 @@ class TcpConnection {
 			// Fill the tcpInputStream.
 			readBuffer.compact();
 			int bytesRead = socketChannel.read(readBuffer);
+			if (bytesRead > 0)
+				totalBytesReceived += bytesRead;
 			readBuffer.flip();
 			if (bytesRead == -1) throw new SocketException("Connection is closed.");
 			lastReadTime = System.currentTimeMillis();
@@ -236,7 +243,12 @@ class TcpConnection {
 			}
 
 			lastWriteTime = System.currentTimeMillis();
-			return end - start;
+			int sent = end - start;
+
+			if (sent > 0)
+				totalBytesSent += sent;
+
+			return sent;
 		}
 	}
 
@@ -250,6 +262,20 @@ class TcpConnection {
 		} catch (IOException ex) {
 			if (DEBUG) debug("kryonet", "Unable to close TCP connection.", ex);
 		}
+	}
+
+	public int queryBytesReceived()
+	{
+		int a = totalBytesReceived;
+		totalBytesReceived = 0;
+		return a;
+	}
+
+	public int queryBytesSent()
+	{
+		int a = totalBytesSent;
+		totalBytesSent = 0;
+		return a;
 	}
 
 	public boolean needsKeepAlive (long time) {

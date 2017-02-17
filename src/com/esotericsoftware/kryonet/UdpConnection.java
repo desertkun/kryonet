@@ -31,7 +31,7 @@ import java.nio.channels.Selector;
 import static com.esotericsoftware.minlog.Log.*;
 
 /** @author Nathan Sweet <misc@n4te.com> */
-class UdpConnection {
+public class UdpConnection {
 	InetSocketAddress connectedAddress;
 	DatagramChannel datagramChannel;
 	int keepAliveMillis = 19000;
@@ -40,6 +40,9 @@ class UdpConnection {
 	private SelectionKey selectionKey;
 	private final Object writeLock = new Object();
 	private long lastCommunicationTime;
+
+	private int totalBytesReceived = 0;
+	private int totalBytesSent = 0;
 
 	public UdpConnection (Serialization serialization, int bufferSize) {
 		this.serialization = serialization;
@@ -94,7 +97,10 @@ class UdpConnection {
 
 		if(!datagramChannel.isConnected())
 			return (InetSocketAddress)datagramChannel.receive(readBuffer); // always null on Android >= 5.0
-		datagramChannel.read(readBuffer);
+		int read = datagramChannel.read(readBuffer);
+		if (read > 0)
+			totalBytesReceived += read;
+
 		return connectedAddress;
 	}
 
@@ -133,6 +139,8 @@ class UdpConnection {
 				lastCommunicationTime = System.currentTimeMillis();
 
 				boolean wasFullWrite = !writeBuffer.hasRemaining();
+				if (wasFullWrite)
+					totalBytesSent += length;
 				return wasFullWrite ? length : -1;
 			} finally {
 				writeBuffer.clear();
@@ -155,5 +163,19 @@ class UdpConnection {
 
 	public boolean needsKeepAlive (long time) {
 		return connectedAddress != null && keepAliveMillis > 0 && time - lastCommunicationTime > keepAliveMillis;
+	}
+
+	public int queryBytesReceived()
+	{
+		int a = totalBytesReceived;
+		totalBytesReceived = 0;
+		return a;
+	}
+
+	public int queryBytesSent()
+	{
+		int a = totalBytesSent;
+		totalBytesSent = 0;
+		return a;
 	}
 }
