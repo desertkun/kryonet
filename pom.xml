@@ -9,7 +9,7 @@
 
     <groupId>com.github.desertkun</groupId>
     <artifactId>kryonet</artifactId>
-    <version>2.22.0-RC4</version>
+    <version>2.22.0-RC6</version>
     <packaging>jar</packaging>
 
     <name>kryonet</name>
